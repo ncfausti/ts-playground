@@ -1,22 +1,26 @@
 "use strict";
 (function () {
-    var BOARD_HEIGHT = 50;
-    var BOARD_WIDTH = 50;
-    var Marker = /** @class */ (function () {
-        function Marker(x, y) {
-            var _this = this;
+    const BOARD_HEIGHT = 5;
+    const BOARD_WIDTH = 5;
+    const START = "0,0";
+    const GOAL = "4,4";
+    class Marker {
+        constructor(x, y) {
             this.x = x;
             this.y = y;
-            this.toString = function () {
-                return "x: " + _this.x + ", y: " + _this.y;
+            this.toString = () => {
+                return [this.x, this.y].toString();
+            };
+            this.getDOMElement = () => {
+                return document.getElementById(`marker-${this.x}-${this.y}`);
             };
         }
-        Marker.prototype.getNeighbors = function () {
-            var neighbors = [];
+        getNeighbors() {
+            let neighbors = [];
             // check 12 o'clock
             if ((this.x - 1 >= 0 && this.x - 1 < BOARD_HEIGHT) &&
                 (this.y - 1 >= 0 && this.y - 1 < BOARD_WIDTH)) {
-                neighbors.push(new Marker(this.x - 1, this.y - 1));
+                neighbors.push(new Marker(this.x - 1, this.y));
             }
             // 3 o'clock
             if ((this.x >= 0 && this.x < BOARD_HEIGHT) &&
@@ -34,69 +38,92 @@
                 neighbors.push(new Marker(this.x, this.y - 1));
             }
             return neighbors;
-        };
-        return Marker;
-    }());
-    var Queue = /** @class */ (function () {
-        function Queue() {
+        }
+    }
+    class Queue {
+        constructor() {
             this._store = [];
         }
-        Queue.prototype.push = function (val) {
+        push(val) {
             this._store.push(val);
-        };
-        Queue.prototype.pop = function () {
+        }
+        pop() {
             return this._store.shift();
-        };
-        return Queue;
-    }());
-    var Board = /** @class */ (function () {
-        function Board(height, width) {
-            var _this = this;
+        }
+        length() {
+            return this._store.length;
+        }
+    }
+    const sleep = (milliseconds) => {
+        return new Promise(resolve => setTimeout(resolve, milliseconds));
+    };
+    class Board {
+        constructor(height, width) {
             this.height = height;
             this.width = width;
-            this.toString = function () {
+            this.toString = () => {
                 row: String;
-                for (var i = 0; i < _this.height; i++) {
-                    for (var j = 0; j < _this.width; j++) {
+                for (let i = 0; i < this.height; i++) {
+                    for (let j = 0; j < this.width; j++) {
                         console.log();
                     }
                 }
                 return "";
             };
-            this.bfs = function (start) {
-                var q = new Queue();
+            this.bfs = async (start) => {
+                let q = new Queue();
+                let seen = new Set();
+                seen.add(start.toString());
                 q.push(start);
                 // while items still in queue
-                while (q) {
-                    alert(q);
-                    q.pop();
+                while (q.length() > 0) {
+                    let current = q.pop();
+                    for (const n of current.getNeighbors()) {
+                        if (n.toString() == GOAL) {
+                            return true;
+                        }
+                        if (!seen.has(n.toString())) {
+                            await sleep(1000);
+                            console.log("Neighbor: " + n.toString());
+                            seen.add(n.toString());
+                            const el = document.getElementById(`marker-${n.x}-${n.y}`);
+                            el.classList.add("seen");
+                            q.push(n);
+                        }
+                    }
                 }
                 return false;
             };
             this.height = height;
             this.width = width;
         }
-        return Board;
-    }());
+    }
     function setup(board) {
         var divBoard = document.createElement("div");
         divBoard.className = "board";
-        for (var i = 0; i < board.height; i++) {
+        for (let i = 0; i < board.height; i++) {
             var row = document.createElement("div");
             row.className = "row";
-            for (var j = 0; j < board.width; j++) {
+            for (let j = 0; j < board.width; j++) {
                 var cell = document.createElement("span");
                 cell.className = "square";
+                cell.id = `marker-${i}-${j}`;
+                if ([i, j].toString() == START) {
+                    cell.classList.add("start");
+                }
+                if ([i, j].toString() == GOAL) {
+                    cell.classList.add("goal");
+                }
                 row.appendChild(cell);
             }
             divBoard.appendChild(row);
         }
         return divBoard;
     }
-    var board = new Board(BOARD_HEIGHT, BOARD_WIDTH);
+    let board = new Board(BOARD_HEIGHT, BOARD_WIDTH);
     document.body.appendChild(setup(board));
-    // board.bfs({x:0, y:0});
+    console.log(board.bfs(new Marker(0, 0)));
+    // tests
     console.log(new Marker(0, 0).getNeighbors());
-    console.log(new Marker(50, 50).getNeighbors());
     console.log(new Marker(2, 2).getNeighbors());
 })();
